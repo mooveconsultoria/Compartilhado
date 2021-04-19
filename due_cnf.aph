@@ -1,0 +1,442 @@
+<% Local i := 1 %>
+<% Local j := 1 %>
+<% Local nNfsRem := 1 %>
+<% Local npesoKg := 0 %>
+<% Local nContDue := 0 %>
+<% Local nItNf := 1 %>
+<% Local acodMoeda := {} %>
+<% Local nFator := 0 %> 
+<% Local cPaisOriPrc := Posicione("SYA",1,xfilial("SYA")+Alltrim(POSICIONE("SA2", 1, xFilial("SA2") + EEC->(EEC_FORN+EEC_FOLOJA), "A2_PAIS")),"YA_PAISDUE") %>
+<% Local cPaisDstPrc := Posicione("SYA",1,xfilial("SYA")+Alltrim(POSICIONE("SA1", 1, xFilial("SA1") + EEC->(EEC_IMPORT+EEC_IMLOJA), "A1_PAIS")),"YA_PAISDUE") %>
+<% Local lSemNota := .F. %>
+<?xml version="1.0" encoding="UTF-8"?>
+<Declaration xsi:schemaLocation="urn:wco:datamodel:WCO:GoodsDeclaration:1 GoodsDeclaration_1p0_DUE.xsd" xmlns:ds="urn:wco:datamodel:WCO:GoodsDeclaration_DS:1" xmlns="urn:wco:datamodel:WCO:GoodsDeclaration:1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <% EEM->(DbSetOrder(1)) %> 
+    <% EEM->(dbSeek(xFilial("EEM")+EEC->EEC_PREEMB+AvKey('N',"EEM_TIPOCA"))) %>
+    <% EE9->(DbSetOrder(3)) %> 
+    <% EE9->(dbSeek(xFilial("EE9")+EEC->EEC_PREEMB)) %>
+	<% If EEM->(Eof()) %>
+		<% lSemNota := .T. %>   
+	<% EndIf %>
+	<% If !lSemNota %>
+			<DeclarationNFe>
+	<% EndIf %>		
+	<% If lSemNota %>
+		<DeclarationNoNF>
+	<% EndIf %>
+		<% If AvFlags("DU-E2") .And. !Empty(EEC->EEC_NRODUE) %>
+			<ID><%= Alltrim(EEC->EEC_NRODUE) %></ID>
+		<% EndIf %>
+		<DeclarationOffice>
+			<ID><%= Alltrim(EEC->EEC_URFDSP) %></ID>
+				<% If EEC->EEC_EMFRRC <> "22" .And. EEC->EEC_EMFRRC <> "19" %>
+					<Warehouse>
+						<ID><%= Alltrim(EEC->EEC_RECALF) %></ID>
+						<TypeCode><%= Alltrim(EEC->EEC_EMFRRC) %></TypeCode>
+					</Warehouse>
+				<% ElseIf EEC->(FieldPos("EEC_RESPDE") > 0 .And. FieldPos("EEC_LATDES") > 0 .And. FieldPos("EEC_LONDES") > 0 .And. FieldPos("EEC_ENDDES") > 0) %>
+				<Warehouse>
+					<ID><%= AllTrim(EEC->EEC_RESPDE) %></ID>
+					<TypeCode><%= Alltrim(EEC->EEC_EMFRRC) %></TypeCode>
+					<LatitudeMeasure><%= AllTrim(Str(EEC->EEC_LATDES,, 6)) %></LatitudeMeasure>
+					<LongitudeMeasure><%= AllTrim(Str(EEC->EEC_LONDES,, 6)) %></LongitudeMeasure>
+					<Address>
+						<Line><%= LEFT(Alltrim(EEC->EEC_ENDDES),60) %></Line>
+					</Address>
+				</Warehouse>
+				<% EndIf %>
+		</DeclarationOffice>
+		<% If AvFlags("DU-E2") .And. !Empty(EEC->EEC_FOREXP) %>
+			 <AdditionalInformation>
+			 		<StatementCode><%= Alltrim(EEC->EEC_FOREXP) %></StatementCode>
+					 <% cObsFor := Alltrim(ConverteXML(EEC->EEC_OBSFOR)) %>
+					 <% cObsFor := StrTran( cObsFor, "<" , "" ) %>
+					 <% cObsFor := StrTran( cObsFor, ">" , "" ) %>
+					<StatementDescription><%= cObsFor %></StatementDescription>
+					<StatementTypeCode>CUS</StatementTypeCode>
+			</AdditionalInformation>
+		<% Endif %>
+		<% If !(AvFlags("DU-E2") .And. !Empty(EEC->EEC_FOREXP)) %>
+			<AdditionalInformation>
+				<StatementCode>1001</StatementCode>
+				<StatementTypeCode>CUS</StatementTypeCode>
+			</AdditionalInformation>  
+        <% EndIf %>
+		<%  If AvFlags("DU-E2") .And. !Empty(EEC->EEC_SITESP) %>
+			 <AdditionalInformation>
+			 		<StatementCode><%= Alltrim(EEC->EEC_SITESP) %></StatementCode>
+			 		<% cObsSit := Alltrim(ConverteXML(EEC->EEC_OBSSIT)) %>
+					<% cObsSit := StrTran( cObsSit, "<" , "" ) %>
+					<% cObsSit := StrTran( cObsSit, ">" , "" ) %>
+					<StatementDescription><%= cObsSit %></StatementDescription>
+					<StatementTypeCode>AHZ</StatementTypeCode>
+			</AdditionalInformation>
+        <% EndIf %>
+		<% If AvFlags("DU-E2") .And. !Empty(EEC->EEC_ESPTRA) %>
+			 <AdditionalInformation>
+			 		<StatementCode><%= Alltrim(EEC->EEC_ESPTRA) %></StatementCode>
+					<% cObsTra := Alltrim(ConverteXML(EEC->EEC_OBSTRA)) %>
+					<% cObsTra := StrTran( cObsTra, "<" , "" ) %>
+					<% cObsTra := StrTran( cObsTra, ">" , "" ) %>
+					<StatementDescription><%= cObsTra %></StatementDescription>
+					<StatementTypeCode>TRA</StatementTypeCode>
+			</AdditionalInformation>
+        <% EndIf %>
+		<% If !Empty(cObsEmb := Du400ObsEmb()) %>
+			 <AdditionalInformation>
+					<% cObsEmb := StrTran( cObsEmb, "<" , "" ) %>
+					<% cObsEmb := StrTran( cObsEmb, ">" , "" ) %>
+					<StatementDescription><%= cObsEmb %></StatementDescription>
+					<StatementTypeCode>AAI</StatementTypeCode>
+			</AdditionalInformation>
+      <% EndIf %>
+		<CurrencyExchange>
+		   <% aCodMoeda := DU400ChgMd(Alltrim(EEC->EEC_MOEDA)) %>
+			<CurrencyTypeCode><%= acodMoeda[2] %></CurrencyTypeCode>
+		</CurrencyExchange>   
+		<Declarant>
+			<ID><%= Alltrim(POSICIONE("SA2", 1, xFilial("SA2") + EEC->(EEC_FORN+EEC_FOLOJA), "A2_CGC")) %></ID>
+			<% If DU400HasJus(EEC->EEC_PREEMB) %>
+				<Contact>
+					<Name><%= AllTrim(EEC->EEC_RESPON) %></Name>
+					<Communication>
+						<ID><%= AllTrim(Posicione("EE3", 1, xFilial("EE3")+"X"+EEC->(AvKey(EEC_FORN, "EE3_CONTAT")+AvKey(EEC_FOLOJA, "EE3_COMPL")), "EE3_EMAIL")) %></ID>
+						<TypeCode>EM</TypeCode>
+					</Communication>
+					<Communication>
+						<ID><%= AllTrim(Posicione("EE3", 1, xFilial("EE3")+"X"+EEC->(AvKey(EEC_FORN, "EE3_CONTAT")+AvKey(EEC_FOLOJA, "EE3_COMPL")), "EE3_FONE")) %></ID>
+						<TypeCode>TE</TypeCode>
+					</Communication>
+				</Contact>
+			<% EndIf %>
+		</Declarant>
+		<% If EEC->(FieldPos("EEC_RECEMB")) > 0 .And. !Empty(EEC->EEC_RECEMB) %>
+			<ExitOffice>
+				<ID><%= Alltrim(if(!Empty(EEC->EEC_URFENT), EEC->EEC_URFENT, EEC->EEC_URFDSP)) %></ID>
+				<Warehouse>
+					<ID><%= Alltrim(EEC->EEC_RECEMB) %></ID>
+					<TypeCode><%= Alltrim(EEC->EEC_EMFRRC) %></TypeCode>
+				</Warehouse>
+			</ExitOffice>
+		<% Else %>
+			<ExitOffice>
+				<ID><%= Alltrim(EEC->EEC_URFDSP) %></ID>
+				<Warehouse>
+					<ID><%= Alltrim(EEC->EEC_RECALF) %></ID>
+					<TypeCode><%= Alltrim(EEC->EEC_EMFRRC) %></TypeCode>
+				</Warehouse>
+			</ExitOffice>
+		<% EndIf %>
+        <% cChaveEEM := xFilial("EEM")+EEC->EEC_PREEMB+AvKey('N',"EEM_TIPOCA") %>
+        <% Do While EE9->(!Eof() .And. EE9_FILIAL+EE9_PREEMB == xFilial("EE9")+EEC->EEC_PREEMB) %>
+        <% aItensNF := u_DUAirGetRg(EE9->EE9_NF,EE9->EE9_SERIE,EE9->EE9_PREEMB, EE9->EE9_PEDIDO ) %>
+    	<GoodsShipment> 
+		   <%  aNFsSAIDA  := {} %>
+           <%  aNFsRemess := {} %>
+		   <%  aNFRemSaida := {} %>
+           <%  nPosChv := 0 %>
+    	   <%  For nItNf := 1 To Len(aItensNF) %>
+		   <%  nContDue++ %>
+    	   <%  EE9->(DbGoto(aItensNF[nItNf][1])) %>   
+    	   <%  EES->(DbGoto(aItensNF[nItNf][2])) %>   
+           <%  nFator    := aItensNF[nItNf][3] %>     
+		   <% If lSemNota %>
+		   		<Exporter>
+			 		<% cFornde := Alltrim(ConverteXML(POSICIONE("SA2", 1, xFilial("SA2") + EEC->(EEC_FORN+EEC_FOLOJA), "A2_NOME"))) %>
+					<% cFornde := StrTran( cFornde, "<" , "" ) %>
+					<% cFornde := StrTran( cFornde, ">" , "" ) %>
+					<Name><%= cFornde %></Name>
+				   <ID><%= Alltrim(POSICIONE("SA2", 1, xFilial("SA2") + EEC->(EEC_FORN+EEC_FOLOJA), "A2_CGC")) %></ID>
+				   <Address>
+				   		<CountryCode><%= AllTrim(cPaisOriPrc) %></CountryCode>
+						<CountrySubDivisionCode><%= "BR-" + Alltrim(POSICIONE("SA2", 1, xFilial("SA2") + EEC->(EEC_FORN+EEC_FOLOJA), "A2_EST")) %></CountrySubDivisionCode>
+						<% cForEnd := AllTrim(ConverteXML(POSICIONE("SA2", 1, xFilial("SA2") + EEC->(EEC_FORN+EEC_FOLOJA), "A2_END"))) %>
+						<% cForEnd := StrTran( cForEnd, "<" , "" ) %>
+						<% cForEnd := StrTran( cForEnd, ">" , "" ) %>
+						<Line><%= cForEnd %></Line>
+				   </Address>
+				</Exporter>
+		   <% EndIf %>
+           <GovernmentAgencyGoodsItem>
+		   		<CustomsValueAmount><%=  StrZero( ((EE9->EE9_PRCINC - EE9->EE9_DESCON - EE9->EE9_VLDESC) *nFator), AVSX3("EE9_PRCINC",3), AVSX3("EE9_PRCINC",4) ) %></CustomsValueAmount>
+        		<SequenceNumeric><%= nContDue %></SequenceNumeric>
+        		<Destination>
+          			<CountryCode><%= AllTrim(Posicione("SYA",1,xfilial("SYA")+EEC->EEC_PAISET,"YA_PAISDUE")) %></CountryCode>
+          			<GoodsMeasure>
+            			<TariffQuantity><%= StrZero((Du400GetVal(EE9->EE9_SEQEMB, "QUANTIDADE_NCM")*nFator), AVSX3("EE9_SLDINI",3), 5 ) %></TariffQuantity>
+          			</GoodsMeasure>
+        		</Destination>
+				<% If EE9->(FieldPos("EE9_JUSDUE")) > 0 .And. !Empty(EE9->EE9_JUSDUE) %>
+					<AdditionalInformation>
+						<StatementDescription><%= Alltrim(EE9->EE9_JUSDUE) %></StatementDescription>
+						<StatementTypeCode>AVD</StatementTypeCode>
+					</AdditionalInformation>
+				<% EndIf %>
+        	  <% If EE9->(FieldPos("EE9_LPCO")) > 0 .And. !Empty(EE9->EE9_LPCO) %>
+				<AdditionalDocument>
+						<CategoryCode>LPCO</CategoryCode>
+						<ID><%= AllTrim(EE9->EE9_LPCO) %></ID>
+				</AdditionalDocument>
+			 <% EndIf %>
+        	 <% If Empty(EE9->EE9_ATOCON) %>
+			 	<% If EYU->(FieldPos("EYU_TPAC") > 0 .And. DbSeek(xFilial()+EEC->EEC_PREEMB+EE9->EE9_SEQEMB )) %>
+					<% While EYU->(!Eof() .And. EYU_FILIAL+EYU_PREEMB+EYU_SEQEMB == xFilial()+EEC->EEC_PREEMB+EE9->EE9_SEQEMB ) %>
+						<AdditionalDocument>
+							<CategoryCode><%= DU400TpAC(EYU->EYU_TPAC) %></CategoryCode>
+							<ID><%= Alltrim(EYU->EYU_ATOCON) %></ID>
+							<DrawbackHsClassification><%= AllTrim(EYU->EYU_POSIPI) %></DrawbackHsClassification>
+							<DrawbackRecipientId><%= AllTrim(EYU->EYU_CNPJ) %></DrawbackRecipientId>
+							<% If EYU->EYU_VLSCOB > 0 %>
+								<ValueWithoutExchangeCoverAmount><%= AllTrim(Str(EYU->EYU_VLSCOB, AVSX3("EE9_PRCTOT",3), AVSX3("EE9_PRCTOT",4) )) %></ValueWithoutExchangeCoverAmount>
+							<% EndIf %>
+							<% If (EYU->EYU_VALOR - EYU->EYU_VLSCOB) > 0%>
+								<ValueWithExchangeCoverAmount><%= AllTrim(Str(EYU->EYU_VALOR - EYU->EYU_VLSCOB, AVSX3("EE9_PRCTOT",3), AVSX3("EE9_PRCTOT",4) )) %></ValueWithExchangeCoverAmount>
+							<% EndIf %>
+							<ItemID><%= AllTrim(EYU->EYU_SEQED3) %></ItemID>
+							<QuantityQuantity><%= Str(EYU->EYU_QTD, AVSX3("EYU_QTD",3), 5) %></QuantityQuantity>
+							<% If EWI->(FieldPos("EWI_CHVNFE") > 0 .And. dbSeek(xFilial()+EYU->(EYU_PREEMB+EYU_SEQEMB+EYU_TIPO+EYU_CNPJ+EYU_POSIPI+EYU_ATOCON+EYU_SEQED3))) %>
+								<% Do While EWI->(!EoF() .AND. EWI_FILIAL+EWI_PREEMB+EWI_SEQEMB+EWI_TIPO+EWI_CNPJ+EWI_POSIPI+EWI_ATOCON+EWI_SEQED3 == xFilial()+EYU->(EYU_PREEMB+EYU_SEQEMB+EYU_TIPO+EYU_CNPJ+EYU_POSIPI+EYU_ATOCON+EYU_SEQED3)) %>
+									<Invoice>
+										<ID><%= EWI->(FieldPos("EWI_CHVNFE") > 0, EWI_CHVNFE, "") %></ID>
+										<IssueDateTime><%= EasyTimeStamp(EWI->EWI_DTNF) %></IssueDateTime>
+										<TypeCode>388</TypeCode>
+										<CustomsValueAmount><%= Str(EWI->EWI_VLNF, AvSX3("EWI_VLNF",3),AvSX3("EWI_VLNF",4)) %></CustomsValueAmount>
+										<QuantityQuantity><%= Str(EWI->EWI_QTD, AvSx3("EWI_QTD", 3), 5) %></QuantityQuantity>
+									</Invoice>
+									<% EWI->(DbSkip()) %>
+								<% EndDo %>
+							<% EndIf %>
+						</AdditionalDocument>
+				  		<% EYU->(DbSkip()) %>
+			      	<% EndDo %>
+				<% EndIf %>
+			 <% Else %>
+			 	<AdditionalDocument>
+					<% If GetMv("MV_EEC_EDC",,.F.) %>
+						<CategoryCode><%= DU400TpAC(Posicione("ED0", 2, xFilial("ED0")+EE9->EE9_ATOCON, "ED0_TIPOAC")) %></CategoryCode>
+						<ID><%= Alltrim(EE9->EE9_ATOCON) %></ID>
+						<DrawbackHsClassification><%= AllTrim(Posicione("ED3", 2, xFilial("ED3")+EE9->EE9_ATOCON+EE9->EE9_SEQED3, "ED3_NCM")) %></DrawbackHsClassification>
+						<DrawbackRecipientId><%= Posicione('SYT', 1, xFilial('SYT')+Posicione("ED0", 2, xFilial("ED0")+EE9->EE9_ATOCON, "ED0_IMPORT"), 'YT_CGC') %></DrawbackRecipientId>
+						<% If EE9->EE9_VLSCOB > 0 %>
+							<ValueWithoutExchangeCoverAmount><%= StrZero(EE9->EE9_VLSCOB, AVSX3("EE9_PRCTOT",3), AVSX3("EE9_PRCTOT",4) ) %></ValueWithoutExchangeCoverAmount>
+						<% EndIf %>
+						<% If (EE9->EE9_VL_AC - EE9->EE9_VLSCOB) > 0 %>
+							<ValueWithExchangeCoverAmount><%= StrZero(EE9->EE9_VL_AC - EE9->EE9_VLSCOB, AVSX3("EE9_PRCTOT",3), AVSX3("EE9_PRCTOT",4) ) %></ValueWithExchangeCoverAmount>
+						<% EndIf %>
+						<ItemID><%= Alltrim(EE9->EE9_SEQED3) %></ItemID>
+						<QuantityQuantity><%= Str(Posicione("ED3", 2, xFilial("ED3")+EE9->EE9_ATOCON+EE9->EE9_SEQED3, "AVTransUnid(ED3->ED3_UMPROD,ED3->ED3_UMNCM,ED3->ED3_PROD,EE9->EE9_QT_AC)"), AvSx3("EE9_QT_AC", 3), 5) %></QuantityQuantity>
+					<% Else %>
+						<CategoryCode><%= DU400TpAC(EE9->(If(FieldPos("EE9_TPAC") > 0 .And. !Empty(EE9_TPAC), EE9_TPAC, ""))) %></CategoryCode>
+						<ID><%= Alltrim(EE9->EE9_ATOCON) %></ID>
+						<DrawbackHsClassification><%= AllTrim(EE9->EE9_POSIPI) %></DrawbackHsClassification>
+						<DrawbackRecipientId><%= If(!Empty(EEC->EEC_EXPORT+EEC->EEC_EXLOJA), SI100CNPJ(EEC->EEC_EXPORT+EEC->EEC_EXLOJA), SI100CNPJ(EEC->EEC_FORN+EEC->EEC_FOLOJA)) %></DrawbackRecipientId>
+						<% If EE9->EE9_VLSCOB > 0 %>
+							<ValueWithoutExchangeCoverAmount><%= StrZero(EE9->EE9_VLSCOB, AVSX3("EE9_PRCTOT",3), AVSX3("EE9_PRCTOT",4) ) %></ValueWithoutExchangeCoverAmount>
+						<% EndIf %>
+						<% If (EE9->EE9_PRCINC - EE9->EE9_DESCON - EE9->EE9_VLDESC - EE9->EE9_VLSCOB) > 0 %>
+							<ValueWithExchangeCoverAmount><%= StrZero(EE9->EE9_PRCINC - EE9->EE9_DESCON - EE9->EE9_VLDESC - EE9->EE9_VLSCOB, AVSX3("EE9_PRCTOT",3), AVSX3("EE9_PRCTOT",4) ) %></ValueWithExchangeCoverAmount>
+						<% EndIf %>
+						<ItemID><%= AllTrim(EE9->EE9_SEQED3) %></ItemID>
+						<QuantityQuantity><%= StrZero((Du400GetVal(EE9->EE9_SEQEMB, "QUANTIDADE_NCM")*nFator), AVSX3("EE9_SLDINI",3), 5 ) %></QuantityQuantity>
+					<% EndIf %>
+             </AdditionalDocument>
+			 <% EndIf %>
+			 <% If AvFlags("DU-E2") .And. !Empty(EE9->EE9_PCARGA) %>
+			 <AdditionalInformation>
+		 		<StatementCode><%= Alltrim(EE9->EE9_PCARGA) %></StatementCode>
+				<% cObsPca := Alltrim(ConverteXML(EE9->EE9_OBSPCA)) %>
+				<% cObsPca := StrTran( cObsPca, "<" , "" ) %>
+				<% cObsPca := StrTran( cObsPca, ">" , "" ) %>
+				<StatementDescription><%= cObsPca %></StatementDescription>
+				<StatementTypeCode>PRI</StatementTypeCode>
+			 </AdditionalInformation>
+             <% EndIf %>
+        		<Commodity>
+          			<Description><%= DU400DscPrd() %></Description>
+          			<ValueAmount><%=  StrZero( (EE9->EE9_PRCTOT*nFator), AVSX3("EE9_PRCTOT",3), AVSX3("EE9_PRCTOT",4) ) %></ValueAmount>
+					<% If lSemNota %>
+						<% cVmDes := AllTrim(ConverteXML(DU400DscItem())) %>
+						<% cVmDes := StrTran( cVmDes, "<" , "" ) %>
+						<% cVmDes := StrTran( cVmDes, ">" , "" ) %>
+						<CommercialDescription><%= cVmDes %></CommercialDescription>
+						<Classification>
+							<ID><%=AllTrim(EE9->EE9_POSIPI)%></ID>
+							<IdentificationTypeCode>HS</IdentificationTypeCode>
+						</Classification>
+						<GoodsMeasure>
+                  			<TypeCode>AAF</TypeCode>
+							<TariffQuantity><%= StrZero((Du400GetVal(EE9->EE9_SEQEMB, "QUANTIDADE_NCM")* nFator), AVSX3("EE9_SLDINI",3) , 5 ) %></TariffQuantity>
+						</GoodsMeasure>
+						<GoodsMeasure>
+                  			<UnitDescription languageID=""><%= EE9->EE9_UNIDAD %></UnitDescription>
+                  			<TypeCode>ABW</TypeCode>
+							<TariffQuantity><%=  StrZero( (Du400GetVal(EE9->EE9_SEQEMB, "QUANTIDADE")* nFator), AVSX3("EE9_SLDINI",3) , 5 ) %></TariffQuantity>
+						</GoodsMeasure>
+						<Product>
+							<ID><%= EE9->EE9_COD_I %></ID>
+							<IdentifierTypeCode>VN</IdentifierTypeCode>
+						</Product>
+					<% EndIf %>
+          			<% SF1->(DbSetOrder(1)) %>          			
+          			<% SF2->(DbSetOrder(1)) %>
+          			<% EYY->(DbSetOrder(1)) %>
+					  <% SF2->(DbSeek(xFilial("SF2")+AvKey(EE9->EE9_NF,"F2_DOC")+AvKey(EE9->EE9_SERIE,"F2_SERIE")+EEC->EEC_IMPORT+EEC->EEC_IMLOJA)) %>
+          			  <% EYY->(DbSeek(xFilial("EYY")+EE9->EE9_PREEMB+EE9->EE9_SEQEMB+AvKey(EE9->EE9_NF,"EYY_NFSAI")+AvKey(EE9->EE9_SERIE,"EYY_SERSAI"))) %>
+          			  <% IF EES->(!Eof()) %>
+					  <%  If(!lSemNota, aItRemSaida := DU400GetNfSRem(EEM->EEM_NRNF, EEM->EEM_SERIE, EEC->EEC_IMPORT, EEC->EEC_IMLOJA, EES->EES_FATSEQ, @aNFRemSaida), Nil) %>
+          			<InvoiceLine>
+            			<SequenceNumeric><%= DU400CnvSeq(EES->EES_FATSEQ) %></SequenceNumeric>
+          			    <% If EYY->(!Eof()) %>
+          			    	<% cChaveEE9 := xFilial("EYY")+EE9->EE9_PREEMB+EE9->EE9_SEQEMB+AvKey(EE9->EE9_NF,"EYY_NFSAI")+AvKey(EE9->EE9_SERIE,"EYY_SERSAI") %>
+          			    	<% Do While EYY->( !Eof() .AND. Left(&(IndexKey()),Len(cChaveEE9)) == cChaveEE9) %>
+          			    		<% If !Empty(EYY->EYY_NFENT) .And. !Empty(EYY->EYY_SERENT) .And. !Empty(EYY->EYY_CHVNFE) .And. !Empty(EYY->EYY_D1ITEM)%>
+          			    			<% SF1->(dbSeek(xFilial("SF1")+AvKey(EYY->EYY_NFENT,"F1_DOC")+AvKey(EYY->EYY_SERENT,"F1_SERIE")+EYY->EYY_FORN+EYY->EYY_FOLOJA )) %>
+									<ReferencedInvoiceLine>
+          			    				<SequenceNumeric><%= Alltrim(EYY->EYY_D1ITEM) %></SequenceNumeric>
+          			    				<InvoiceIdentificationID><%= Alltrim(EYY->EYY_CHVNFE) %></InvoiceIdentificationID>
+                             			<% If( nPosChv := aScan(aNFsRemess,{|x| x[1] ==     (Alltrim(EYY->EYY_NFENT) + Alltrim(SF1->F1_ESPECIE) + Alltrim(SF1->F1_SERIE))      })) == 0 %>                                        
+                                 			<% aAdd(aNFsRemess,{Alltrim(SF1->F1_DOC) + Alltrim(SF1->F1_ESPECIE)+ Alltrim(SF1->F1_SERIE),Posicione("SA2",1,xFilial("SA2")+SF1->F1_FORNECE+SF1->F1_LOJA,"A2_CGC"), EasyTimeStamp(SF1->F1_EMISSAO,.T.,.T.) , SF1->F1_EST ,SF1->F1_CHVNFE   }) %>
+                             			<% EndIf %>   
+          								<GoodsMeasure>
+            								<TariffQuantity><%=  StrZero( EYY->EYY_QUANT, AVSX3("EYY_QUANT",3), 5 ) %></TariffQuantity>
+          								</GoodsMeasure>
+          			    			</ReferencedInvoiceLine>
+          			    		<% EndIf %>
+          			    		<% EYY->(DBSkip()) %>
+          			    	<% EndDo %>
+          			    <% EndIf %>
+						<% For nNfsRem := 1 To Len(aItRemSaida) %>
+							<ReferencedInvoiceLine>
+          			    		<SequenceNumeric><%= aItRemSaida[nNfsRem][2] %></SequenceNumeric>
+          			    		<InvoiceIdentificationID><%= aItRemSaida[nNfsRem][1] %></InvoiceIdentificationID>
+          						<GoodsMeasure>
+            						<TariffQuantity><%=  StrZero( aItRemSaida[nNfsRem][3], AVSX3("D2_QUANT",3), 5 ) %></TariffQuantity>
+          						</GoodsMeasure>
+          			    	</ReferencedInvoiceLine>
+						<% Next %>
+          			</InvoiceLine>
+          			<% EndIf %>
+					  <% If !Empty(EE9->EE9_DTQNCM) .And. !Empty(cAtt := DU400GetAtt(EE9->EE9_POSIPI, EE9->EE9_DTQNCM))  %>
+					  	<ProductCharacteristics>
+            				<TypeCode><%= Alltrim(cAtt) %></TypeCode>
+            				<Description><%= EE9->EE9_DTQNCM %></Description>
+          				</ProductCharacteristics>
+					  <% EndIf %>
+        		</Commodity>
+             <GoodsMeasure>
+				<NetNetWeightMeasure><%= StrZero((((Du400GetVal(EE9->EE9_SEQEMB, "QUANTIDADE_NCM")*nFator)*1000) * EE9->EE9_PSLQUN ), AVSX3("EE9_SLDINI",3), 5 ) %></NetNetWeightMeasure>
+             </GoodsMeasure>
+			 		<% If !Empty(EE9->EE9_ATOCON) .And. !Empty(EEC->EEC_ENQCOX) %>
+						<GovernmentProcedure>
+							<CurrentCode><%= Alltrim(EEC->EEC_ENQCOX) %></CurrentCode>
+						</GovernmentProcedure>
+					<% Else %>
+						<% If !Empty(EEC->EEC_ENQCOD) %>
+							<GovernmentProcedure>
+								<CurrentCode><%= Alltrim(EEC->EEC_ENQCOD) %></CurrentCode>
+							</GovernmentProcedure>
+						<% EndIf %>
+						<% If !Empty(EEC->EEC_ENQCO1) %>
+							<GovernmentProcedure>
+								<CurrentCode><%= Alltrim(EEC->EEC_ENQCO1) %></CurrentCode>
+							</GovernmentProcedure>
+						<% EndIf %>
+						<% If !Empty(EEC->EEC_ENQCO2) %>
+							<GovernmentProcedure>
+								<CurrentCode><%= Alltrim(EEC->EEC_ENQCO2) %></CurrentCode>
+							</GovernmentProcedure>
+						<% EndIf %>
+						<% If !Empty(EEC->EEC_ENQCO3) %>
+							<GovernmentProcedure>
+								<CurrentCode><%= Alltrim(EEC->EEC_ENQCO3) %></CurrentCode>
+							</GovernmentProcedure>
+						<% EndIf %>
+					<% EndIf %>
+				<% If IF(!EasyGParam("MV_AVG0077",,.F.) .And. !Empty(EE9->EE9_PERCOM) , EE9->EE9_PERCOM , ((EEC->EEC_VALCOM/EEC->EEC_TOTFOB)*100) ) > 0 %>
+						<ValuationAdjustment>
+							<AdditionCode>149</AdditionCode>
+							<PercentageNumeric><%= AllTrim(Str(IF(!EasyGParam("MV_AVG0077",,.F.) .And. !Empty(EE9->EE9_PERCOM) , EE9->EE9_PERCOM , ((EEC->EEC_VALCOM/EEC->EEC_TOTFOB)*100) ))) %></PercentageNumeric>
+						</ValuationAdjustment>
+				<% EndIf %>
+      	   </GovernmentAgencyGoodsItem>
+          <% Next nItNf %>
+          <% If(!lSemNota, aAdd(aNFsSAIDA,{ EEM->EEM_NRNF , EEM->EEM_SERIE , EEM->EEM_TIPONF, EEM->EEM_DTNF, EEM->EEM_CHVNFE , aClone(aNFsRemess) }), ) %>
+          <% aNFsRemess := {} %>    
+		  <% If lSemNota %>
+		  	<Importer>
+				<% cImporter := Alltrim(ConverteXML(EEC->EEC_IMPODE)) %>
+				<% cImporter := StrTran( cImporter, "<" , "" ) %>
+				<% cImporter := StrTran( cImporter, ">" , "" ) %>
+				<Name><%= cImporter %></Name>
+			  <Address>
+			  	<CountryCode><%= AllTrim(cPaisDstPrc) %></CountryCode>
+				<% cEndImp := Alltrim(ConverteXML(EEC->EEC_ENDIMP)) %>
+				<% cEndImp := StrTran( cEndImp, "<" , "" ) %>
+				<% cEndImp := StrTran( cEndImp, ">" , "" ) %>
+				<Line><%= cEndImp %></Line>
+			  </Address>
+		  	</Importer>
+		  <% EndIf %>
+		  <% If lSemNota %>
+      	   <Invoice>
+			<TypeCode>388</TypeCode>
+			<% If AvFlags("DU-E2") .And. !Empty(EEC->EEC_MOTDIS) %>
+				<AdditionalInformation>
+					<StatementCode><%=Alltrim(EEC->EEC_MOTDIS)%></StatementCode>
+					<StatementTypeCode>ACG</StatementTypeCode>
+				</AdditionalInformation>
+			<% Else %>
+				<AdditionalInformation>
+					<StatementCode>3004</StatementCode>
+					<StatementTypeCode>ACG</StatementTypeCode>
+				</AdditionalInformation>
+			<% EndIf %>
+       	  </Invoice>
+           <% EndIf %>
+		   <% If Len(aNFsSAIDA) > 0 %>
+		   <%    For i := 1 To Len(aNFsSAIDA) %>    
+      	   <Invoice>
+              <ID><%= aNFsSAIDA[i][5] %></ID>
+              <TypeCode>388</TypeCode>
+              <Submitter>
+                 <ID><%= POSICIONE("SA2", 1, xFilial("SA2") + EEC->(EEC_FORN+EEC_FOLOJA), "A2_CGC") %></ID>
+              </Submitter>
+              <% For j:=1 To Len(aNFsSAIDA[i][6]) %>
+              <ReferencedInvoice>
+        	     <ID><%= aNFsSAIDA[i][6][j][5] %></ID>
+        		 <TypeCode>REM</TypeCode>
+        		 <Submitter>
+        		    <ID><%= aNFsSAIDA[i][6][j][2] %></ID>
+        		 </Submitter>
+              </ReferencedInvoice>
+              <% Next j %>
+              <% For j:=1 To Len(aNFRemSaida) %>
+              <ReferencedInvoice>
+        	     <ID><%= aNFRemSaida[j][1] %></ID>
+        		 <TypeCode>REM</TypeCode>
+        		 <Submitter>
+        		    <ID><%= Alltrim(POSICIONE("SA2", 1, xFilial("SA2") + EEC->(EEC_FORN+EEC_FOLOJA), "A2_CGC")) %></ID>
+        		 </Submitter>
+              </ReferencedInvoice>
+              <% Next j %>
+      		</Invoice> 
+      		<%  Next i %> 
+      		<% EndIf %> 
+      		<TradeTerms>
+        		<ConditionCode><%=  Alltrim(EEC->EEC_INCOTE) %></ConditionCode>
+      		</TradeTerms> 
+    	</GoodsShipment>
+    	<% EE9->(DbSkip()) %>
+		<% EndDo %>   
+		<% If AvFlags("DU-E2") .And. !Empty(EEC->EEC_NRORUC) %>
+		<UCR>
+			<TraderAssignedReferenceID><%=  Alltrim(EEC->EEC_NRORUC) %></TraderAssignedReferenceID>
+		</UCR>
+		<% EndIf %> 
+     <% If !lSemNota %>
+	 </DeclarationNFe>
+	<% EndIf %>		
+	<% If lSemNota %>
+	 </DeclarationNoNF>
+	<% EndIf %>
+</Declaration>
